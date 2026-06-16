@@ -8,3 +8,6 @@ res.send('Hello, Express!');
 app.listen(port, () => {
 console.log(`Server is running on http://localhost:${port}`);
 });
+app.get('/about', (req, res) => { 
+res.send('This is the About Page.'); 
+}); 
