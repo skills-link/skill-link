@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/ngobi-jonah/21-bone-crushers/issues"
   },
-  "homepage": "https://github.com/ngobi-jonah/21-bone-crushers#readme"
+  "homepage": "https://github.com/ngobi-jonah/21-bone-crushers#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
 }
