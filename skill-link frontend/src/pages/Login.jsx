@@ -22,6 +22,7 @@ const Login = () => {
       // If the user was redirected here from a protected page, send them back there.
       navigate(location.state?.from?.pathname || dashboardFor(user.role));
     } catch (err) {
+      console.error('Login error', err);
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -49,7 +50,7 @@ const Login = () => {
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
-        <button className="btn btn-primary w-100" disabled={loading}>
+        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? 'Signing in...' : 'Login'}
         </button>
         <p className="text-secondary small mt-3 mb-0">

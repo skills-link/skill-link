@@ -19,15 +19,24 @@ const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL ||
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-// CORS allows the React app, which runs on another port during development,
-// to call this API from the browser. localhost and 127.0.0.1 are different
-// browser origins, so the local defaults allow both.
+// CORS allows the React app, which may run on a different localhost port during
+// development, to call this API from the browser. localhost and 127.0.0.1 are
+// treated as safe local origins when loaded from any port.
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      try {
+        const parsed = new URL(origin);
+        if ((parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') && parsed.port) {
+          return callback(null, true);
+        }
+      } catch (error) {
+        // Fall through to block invalid origins.
       }
+
       return callback(new Error(`CORS blocked origin: ${origin}`));
     },
     credentials: true
