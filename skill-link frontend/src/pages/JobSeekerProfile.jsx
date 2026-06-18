@@ -45,7 +45,9 @@ const JobSeekerProfile = () => {
     Object.entries(form).forEach(([key, value]) => data.append(key, value));
     if (cv) data.append('cv', cv);
     try {
-      const res = await api.put('/profile/job-seeker', data);
+      const res = await api.put('/profile/job-seeker', data, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jobconnect_token')}` }
+      });
       setCurrentCv(res.data.profile.cv_file || '');
       setMessage('Profile saved successfully');
     } catch (err) {

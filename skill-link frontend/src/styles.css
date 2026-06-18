@@ -1,10 +1,9 @@
 :root {
   /* Shared design tokens keep colors consistent across the app. */
-  --jc-primary: #2557d6;
-  --jc-ink: #172033;
-  --jc-muted: #667085;
-  --jc-surface: #f5f7fb;
-  --jc-border: #d9e0ea;
+  --jc-primary: rgb(24, 125, 219);
+  --jc-ink: hsl(0, 0%, 0%);
+  --jc-surface: #ffffff;
+  --jc-border: #000000;
 }
 
 body {
