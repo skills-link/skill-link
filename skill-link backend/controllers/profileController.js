@@ -112,12 +112,16 @@ const upsertJobSeekerProfile = async (req, res) => {
 
     const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [
       req.user.id
-      [
-        req.user.id,
-        phone || null,
-        location || null,
-        skills || null,
-        education || null,
-        experience_level || null,
-        nextCvFile
-      ]
+    ]);
+
+    res.json({ message: 'Job seeker profile saved', profile: rows[0] });
+  } catch (error) {
+    res.status(500).json({ message: 'Could not save job seeker profile', error: error.message });
+  }
+};
+
+module.exports = {
+  getProfile,
+  upsertEmployerProfile,
+  upsertJobSeekerProfile
+};
