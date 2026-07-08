@@ -27,32 +27,122 @@ a {
 
 .hero-section {
   /* The home hero uses a restrained background so job information stays readable. */
-  background:
-    linear-gradient(120deg, rgba(87, 214, 37, 0.12), rgba(123, 25, 108, 0.1)),
-    var(--jc-surface);
   border-bottom: 1px solid var(--jc-border);
+  background-color: var(--jc-surface);
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+}
+
+.hero-section {
+  position: relative;
+}
+
+.hero-section::before {
+  /* Left-to-right gradient overlay that fades the image into the hero text. */
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 58%;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.88) 20%, rgba(255,255,255,0.0) 100%);
+  z-index: 1;
+}
+
+.hero-section .container {
+  position: relative;
+  z-index: 2;
 }
 
 .hero-image-column {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .hero-image-wrapper {
   position: relative;
   width: 100%;
   min-height: 520px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   overflow: hidden;
   border-radius: 32px;
-  background: none;
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+}
+
+/* Login card overlay */
+.login-card {
+  position: absolute;
+  right: 1.5rem;
+  top: 8%;
+  width: min(420px, 92%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(245,255,250,0.82));
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 36px rgba(10, 20, 30, 0.18);
+  backdrop-filter: blur(6px) saturate(120%);
+  z-index: 4;
+}
+
+.login-card .logo-s {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--jc-primary), #16a3a3);
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.login-card .brand-logo {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.login-card .brand-name {
+  font-weight: 700;
+}
+
+.login-card .brand-sub {
+  font-size: 12px;
+  color: rgba(0,0,0,0.6);
+}
+
+.login-card .form-control {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  padding: 0.625rem 0.75rem;
+}
+
+.login-card .btn-primary {
+  background: var(--jc-primary);
+  border-color: var(--jc-primary);
+}
+
+@media (max-width: 991px) {
+  .login-card {
+    position: static;
+    margin-top: 1rem;
+    width: 100%;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+  .hero-image-wrapper {
+    min-height: 360px;
+  }
 }
 
 .hero-image-wrapper::before {
-  /* Left-to-right blend so hero text on the left remains readable. */
+  /* Left-side fade keeps hero text readable while revealing the image on the right. */
   content: '';
   position: absolute;
   left: 0;
@@ -60,27 +150,18 @@ a {
   bottom: 0;
   width: 55%;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.8) 25%, rgba(255,255,255,0.0) 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 25%, rgba(255,255,255,0.0) 100%);
   z-index: 2;
 }
 
 .hero-image-wrapper::after {
-  /* Subtle top-to-bottom fade for a soft, blended look. */
+  /* Soft vertical blend from top to bottom. */
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.9));
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.9));
   z-index: 1;
-}
-
-.hero-image {
-  width: 100%;
-  max-width: 540px;
-  height: auto;
-  object-fit: cover;
-  border-radius: 24px;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
 }
 
 .auth-page {
