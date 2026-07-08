@@ -1,4 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import logo from '../assets/skill-link-logo.jpeg';
 import { useAuth } from '../context/AuthContext';
 import { dashboardFor, roleLabel } from '../utils/roleRoutes';
 
@@ -15,8 +16,8 @@ const AppNavbar = () => {
   return (
     <nav className="navbar navbar-expand-lg bg-white border-bottom sticky-top">
       <div className="container">
-        <Link className="navbar-brand fw-bold text-primary" to="/">
-          Skill-Link
+        <Link className="navbar-brand d-flex align-items-center" to="/">
+          <img src={logo} alt="Skill Link" height="36" />
         </Link>
         <button
           className="navbar-toggler"

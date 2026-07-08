@@ -11,7 +11,7 @@ const statusClass = {
 };
 
 const StatusBadge = ({ status }) => (
-  <span className={`badge text-bg-${statusClass[status] || 'secondary'}`}>{status}</span>
+  <span className={`badge text-bg-primary`}>{status}</span>
 );
 
 export default StatusBadge;

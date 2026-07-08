@@ -1,5 +1,8 @@
 const pool = require('../config/db');
 
+// Phone validation regex: +256 followed by 9 digits
+const phoneRegex = /^\+256[0-9]{9}$/;
+
 const getProfile = async (req, res) => {
   try {
     // The same endpoint returns the correct profile table for the logged-in role.
@@ -30,6 +33,10 @@ const upsertEmployerProfile = async (req, res) => {
     return res.status(400).json({ message: 'Company name is required' });
   }
 
+  if (phone && !phoneRegex.test(phone)) {
+    return res.status(400).json({ message: 'Phone must be in format +256XXXXXXXXX (e.g., +256701234567)' });
+  }
+
   try {
     // ON DUPLICATE KEY UPDATE works because employer_profiles.user_id is UNIQUE.
     // It lets one endpoint handle both "create profile" and "update profile".
@@ -47,11 +54,11 @@ const upsertEmployerProfile = async (req, res) => {
       [
         req.user.id,
         company_name,
-        company_description || '',
-        industry || '',
-        location || '',
-        phone || '',
-        website || ''
+        company_description || null,
+        industry || null,
+        location || null,
+        phone || null,
+        website || null
       ]
     );
 
@@ -68,6 +75,10 @@ const upsertJobSeekerProfile = async (req, res) => {
   const { phone, location, skills, education, experience_level } = req.body;
   // Multer adds req.file when a new CV was uploaded.
   const cvFile = req.file ? req.file.filename : req.body.existing_cv_file || null;
+
+  if (phone && !phoneRegex.test(phone)) {
+    return res.status(400).json({ message: 'Phone must be in format +256XXXXXXXXX (e.g., +256701234567)' });
+  }
 
   try {
     // If the user does not upload a new CV, keep the previous filename.
@@ -101,11 +112,12 @@ const upsertJobSeekerProfile = async (req, res) => {
 
     const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [
       req.user.id
-    ]);
-    res.json({ message: 'Job seeker profile saved', profile: rows[0] });
-  } catch (error) {
-    res.status(500).json({ message: 'Could not save job seeker profile', error: error.message });
-  }
-};
-
-module.exports = { getProfile, upsertEmployerProfile, upsertJobSeekerProfile };
+      [
+        req.user.id,
+        phone || null,
+        location || null,
+        skills || null,
+        education || null,
+        experience_level || null,
+        nextCvFile
+      ]

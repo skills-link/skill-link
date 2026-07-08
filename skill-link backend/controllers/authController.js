@@ -6,6 +6,9 @@ const pool = require('../config/db');
 // Admin users should be created by seed data or a trusted database/admin process.
 const allowedRoles = new Set(['employer', 'job_seeker']);
 
+// Email validation regex: standard email format
+const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 // JWTs store the minimum identity needed by the API: user id and role.
 const signToken = (user) =>
   jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
@@ -29,6 +32,10 @@ const register = async (req, res) => {
   // Basic backend validation protects the API even if a user bypasses the React form.
   if (!name || !email || !password || !role) {
     return res.status(400).json({ message: 'Name, email, password, and role are required' });
+  }
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Email must be a valid email format (e.g., user@example.com)' });
   }
 
   if (!allowedRoles.has(role)) {
@@ -63,12 +70,12 @@ const register = async (req, res) => {
     if (role === 'employer') {
       await connection.query(
         'INSERT INTO employer_profiles (user_id, company_name, company_description, industry, location, phone, website) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [result.insertId, `${name}'s Company`, '', '', '', '', '']
+        [result.insertId, `${name}'s Company`, null, null, null, null, null]
       );
     } else {
       await connection.query(
         'INSERT INTO job_seeker_profiles (user_id, phone, location, skills, education, experience_level, cv_file) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [result.insertId, '', '', '', '', '', null]
+        [result.insertId, null, null, null, null, null, null]
       );
     }
 

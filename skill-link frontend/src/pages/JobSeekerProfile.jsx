@@ -66,7 +66,15 @@ const JobSeekerProfile = () => {
         <div className="row g-3">
           <div className="col-md-6">
             <label className="form-label">Phone</label>
-            <input className="form-control" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input 
+              className="form-control" 
+              type="tel"
+              placeholder="+256701234567"
+              pattern="^\+256[0-9]{9}$"
+              title="Phone must be in format +256XXXXXXXXX (e.g., +256701234567)"
+              value={form.phone} 
+              onChange={(e) => setForm({ ...form, phone: e.target.value })} 
+            />
           </div>
           <div className="col-md-6">
             <label className="form-label">Location</label>

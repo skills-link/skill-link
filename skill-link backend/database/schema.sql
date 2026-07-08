@@ -18,7 +18,8 @@ CREATE TABLE users (
   role ENUM('admin', 'employer', 'job_seeker') NOT NULL,
   status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT check_email_format CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
 -- employer_profiles stores company information for users whose role is employer.
@@ -34,7 +35,8 @@ CREATE TABLE employer_profiles (
   website VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_employer_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_employer_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT check_phone_format CHECK (phone IS NULL OR phone REGEXP '^\+256[0-9]{9}$')
 );
 
 -- job_seeker_profiles stores candidate information and the default CV filename.
@@ -50,7 +52,8 @@ CREATE TABLE job_seeker_profiles (
   cv_file VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_job_seeker_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_job_seeker_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT check_phone_format CHECK (phone IS NULL OR phone REGEXP '^\+256[0-9]{9}$')
 );
 
 -- jobs are owned by employer users. Deleting an employer deletes their jobs through ON DELETE CASCADE.

@@ -1,8 +1,8 @@
 :root {
   /* Shared design tokens keep colors consistent across the app. */
-  --jc-primary: rgb(24, 125, 219);
+  --jc-primary: rgb(23, 148, 61);
   --jc-ink: hsl(0, 0%, 0%);
-  --jc-surface: #ffffff;
+  --jc-surface: linear-gradient(180deg, #b4eef7 0%, #eaf8fb 50%, #ffffff 100%);
   --jc-border: #000000;
 }
 
@@ -28,14 +28,14 @@ a {
 .hero-section {
   /* The home hero uses a restrained background so job information stays readable. */
   background:
-    linear-gradient(120deg, rgba(37, 87, 214, 0.12), rgba(20, 184, 166, 0.10)),
-    #ffffff;
+    linear-gradient(120deg, rgba(87, 214, 37, 0.12), rgba(123, 25, 108, 0.1)),
+    var(--jc-surface);
   border-bottom: 1px solid var(--jc-border);
 }
 
 .hero-panel {
   /* Dark panel creates contrast for the quick metric summary. */
-  background: #0f172a;
+  background: #164ac3;
   color: #ffffff;
   border-radius: 8px;
   padding: 1.25rem;
