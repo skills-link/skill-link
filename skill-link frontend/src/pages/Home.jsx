@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import JobCard from '../components/JobCard';
 import Loading from '../components/Loading';
-import heroImage from '../assets/skill-link-logo.jpeg';
+import heroBackground from '../../images/Gemini_Generated_Image_wzqs1ywzqs1ywzqs.png';
 
 const Home = () => {
   const [jobs, setJobs] = useState([]);
@@ -19,36 +19,21 @@ const Home = () => {
 
   return (
     <main>
-      {/* Public landing section. It links users directly to the main workflows. */}
       <section className="hero-section">
-        <div className="container py-5">
-          <div className="row align-items-center g-5">
-            <div className="col-lg-7">
-              <p className="text-primary fw-semibold mb-2"></p>
-              <h1 className="display-5 fw-bold mb-3">Unlock Opportunities Through Your Skills</h1>
-              <p  style={{ color: 'black', maxWidth: '1000px' }}>
-                Employers can post openings and manage applicants while job seekers build profiles,
-                upload CVs, apply for roles, and track every application. Skill link bridges the gap between talented professionals and employers, making recruitment simple, efficient, and accessible.
-              </p>
-              <div className="d-flex flex-wrap gap-2">
-                <Link to="/jobs" className="btn btn-primary btn-lg">
-                  Browse Jobs
-                </Link>
-                <Link to="/register" className="btn btn-outline-primary btn-lg">
-                  Create Account
-                </Link>
-              </div>
-            </div>
-            <div className="col-lg-5 hero-image-column">
-              <div className="hero-image-wrapper">
-                <img src={heroImage} alt="Skill Link Hero" className="hero-image" />
-              </div>
-            </div>
+        <div className="hero-text-content">
+          <h1>Unlock Opportunities Through Your Skills.</h1>
+          <p>
+            Showcase your skills, discover opportunities.
+            Connect with potential employers all on one platform.
+          </p>
+          <div className="hero-actions">
+            <Link to="/jobs" className="hero-primary-btn">Browse Jobs</Link>
+            <Link to="/register" className="hero-secondary-btn">Create Account</Link>
           </div>
         </div>
       </section>
-      {/* Recent jobs reuse the same JobCard component used by the browse page. */}
-      <section className="container py-5">
+
+      <section className="container py-5 recent-openings-section">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h2 className="h4 mb-0">Recent Openings</h2>
           <Link to="/jobs" className="btn btn-sm btn-outline-primary">

@@ -29,73 +29,155 @@ a {
 }
 
 .hero-section {
-  /* The home hero uses a restrained background so job information stays readable. */
-  border-bottom: 1px solid var(--jc-border);
-  background-color: var(--jc-surface);
-  background-size: cover;
-  background-position: center right;
-  background-repeat: no-repeat;
-}
-
-.hero-section {
   position: relative;
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(227, 247, 240, 1) 0%, rgba(227, 247, 240, 0.9) 35%, rgba(255, 255, 255, 0) 65%),
+    url('/images/Gemini_Generated_Image_wzqs1ywzqs1ywzqs.png') no-repeat right center;
+  background-size: cover;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-.hero-section::before {
-  /* Left-to-right gradient overlay that fades the image into the hero text. */
-  content: '';
+.hero-header {
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 50%;
-  pointer-events: none;
-  /* Blend the image into the page surface using a teal/sky tint across half the hero. */
-  background: linear-gradient(90deg,
-    rgba(180,238,247,0.98) 0%,
-    rgba(180,238,247,0.92) 20%,
-    rgba(180,238,247,0.6) 40%,
-    rgba(180,238,247,0.28) 55%,
-    rgba(180,238,247,0.0) 100%
-  );
-  z-index: 1;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 5%;
+  box-sizing: border-box;
+  z-index: 10;
+  background: transparent;
 }
 
-.hero-section .container {
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hero-brand-logo {
+  width: 46px;
+  height: auto;
+}
+
+.hero-nav-link {
+  color: #111111;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.hero-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.hero-login-btn,
+.hero-register-btn {
+  border-radius: 999px;
+  padding: 0.7rem 1.1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.hero-login-btn {
+  color: #111111;
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.hero-register-btn {
+  background: #1DB954;
+  color: #ffffff;
+  border: 1px solid #1DB954;
+}
+
+.hero-text-content {
   position: relative;
   z-index: 2;
+  max-width: 650px;
+  padding-left: 5%;
+  padding-right: 1.5rem;
 }
 
-.hero-image-column {
+.hero-text-content h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #111111;
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+
+.hero-text-content p {
+  font-size: 1.1rem;
+  color: #333333;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.hero-actions {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.hero-primary-btn,
+.hero-secondary-btn {
+  display: inline-flex;
   align-items: center;
-  position: relative;
+  justify-content: center;
+  border-radius: 30px;
+  padding: 0.9rem 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-.hero-image-wrapper {
-  position: relative;
-  width: 100%;
-  min-height: 520px;
-  overflow: hidden;
-  border-radius: 32px;
-  background-size: cover;
-  background-position: center right;
-  background-repeat: no-repeat;
+.hero-primary-btn {
+  background: #1DB954;
+  color: #ffffff;
 }
 
-/* Login card overlay */
+.hero-secondary-btn {
+  background: transparent;
+  color: #0056b3;
+  border: 1px solid #0056b3;
+}
+
+.recent-openings-section {
+  background: #ffffff;
+}
+
 @media (max-width: 991px) {
-  .hero-image-wrapper {
-    min-height: 360px;
+  .hero-section {
+    min-height: 75vh;
+    padding-top: 90px;
+  }
+
+  .hero-text-content h1 {
+    font-size: 2.6rem;
   }
 }
 
-.hero-image-wrapper::before,
-.hero-image-wrapper::after {
-  /* Remove additional white overlays so the background image remains clear.
-     The primary left blend is handled by .hero-section::before. */
-  content: none;
+@media (max-width: 576px) {
+  .hero-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .hero-text-content h1 {
+    font-size: 2.1rem;
+  }
+
+  .hero-text-content {
+    padding-right: 1rem;
+  }
 }
 
 .auth-page {
