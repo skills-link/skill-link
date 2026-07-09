@@ -89,6 +89,7 @@ const register = async (req, res) => {
     res.status(201).json({ user: publicUserFields(users[0]), token: signToken(users[0]) });
   } catch (error) {
     await connection.rollback();
+    console.error(error);
     res.status(500).json({ message: 'Registration failed', error: error.message });
   } finally {
     connection.release();
@@ -117,6 +118,7 @@ const login = async (req, res) => {
 
     res.json({ user: publicUserFields(user), token: signToken(user) });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Login failed', error: error.message });
   }
 };

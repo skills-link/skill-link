@@ -22,6 +22,7 @@ const getProfile = async (req, res) => {
 
     res.json({ profile: null });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Could not load profile', error: error.message });
   }
 };
@@ -67,6 +68,7 @@ const upsertEmployerProfile = async (req, res) => {
     ]);
     res.json({ message: 'Employer profile saved', profile: rows[0] });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Could not save employer profile', error: error.message });
   }
 };
@@ -101,19 +103,6 @@ const upsertJobSeekerProfile = async (req, res) => {
         cv_file = VALUES(cv_file)`,
       [
         req.user.id,
-        phone || '',
-        location || '',
-        skills || '',
-        education || '',
-        experience_level || '',
-        nextCvFile
-      ]
-    );
-
-    const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [
-      req.user.id
-      [
-        req.user.id,
         phone || null,
         location || null,
         skills || null,
@@ -121,3 +110,14 @@ const upsertJobSeekerProfile = async (req, res) => {
         experience_level || null,
         nextCvFile
       ]
+    );
+
+    const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+    res.json({ message: 'Job seeker profile saved', profile: rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Could not save job seeker profile', error: error.message });
+  }
+};
+
+module.exports = { getProfile, upsertEmployerProfile, upsertJobSeekerProfile };

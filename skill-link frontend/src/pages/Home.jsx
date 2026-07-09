@@ -24,10 +24,10 @@ const Home = () => {
           <div className="row align-items-center g-5">
             <div className="col-lg-7">
               <p className="text-primary fw-semibold mb-2"></p>
-              <h1 className="display-5 fw-bold mb-3">Find talent and career opportunities in one focused workspace.</h1>
+              <h1 className="display-5 fw-bold mb-3">Unlock Opportunities Through Your Skills</h1>
               <p  style={{ color: 'black', maxWidth: '1000px' }}>
                 Employers can post openings and manage applicants while job seekers build profiles,
-                upload CVs, apply for roles, and track every application.
+                upload CVs, apply for roles, and track every application. Skill link bridges the gap between talented professionals and employers, making recruitment simple, efficient, and accessible.
               </p>
               <div className="d-flex flex-wrap gap-2">
                 <Link to="/jobs" className="btn btn-primary btn-lg">

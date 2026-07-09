@@ -81,6 +81,8 @@ app.use((error, req, res, next) => {
   if (error.message && error.message.includes('Only PDF')) {
     return res.status(400).json({ message: error.message });
   }
+  // Log the full error for debugging while returning a minimal message to clients.
+  console.error(error);
   res.status(500).json({ message: 'Server error', error: error.message });
 });
 
