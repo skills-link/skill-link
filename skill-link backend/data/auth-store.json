@@ -1,0 +1,44 @@
+{
+  "users": [
+    {
+      "id": 1783594044490,
+      "name": "Test User",
+      "email": "test@example.com",
+      "password": "$2b$10$N3ULsJd0c0mhA1TyWzvgG.rUivo6anwvOTw3s3ULvkwa8fgPzxftm",
+      "role": "job_seeker",
+      "status": "active",
+      "created_at": "2026-07-09T10:47:24.490Z",
+      "updated_at": "2026-07-09T10:47:24.492Z"
+    },
+    {
+      "id": 1783594320011,
+      "name": "Bonecrashers",
+      "email": "bonecrashers@gmail.com",
+      "password": "$2b$10$xO7jzw/N9axdqEZ0YDT15uMBoOFTipIEjSpRIeVHDP3gqsB/zruw6",
+      "role": "employer",
+      "status": "active",
+      "created_at": "2026-07-09T10:52:00.011Z",
+      "updated_at": "2026-07-09T10:52:00.011Z"
+    },
+    {
+      "id": 1783596402082,
+      "name": "Nakabanda Rebecca",
+      "email": "nakabanda@gmail.com",
+      "password": "$2b$10$4JDDEk8qzFgLFNvmvGbUauaieD0PyWI.fcPSE5DBxpflu6GDxKoTe",
+      "role": "employer",
+      "status": "active",
+      "created_at": "2026-07-09T11:26:42.082Z",
+      "updated_at": "2026-07-09T11:26:42.082Z"
+    },
+    {
+      "id": 1783596481445,
+      "name": "Nakabanda Rebecca",
+      "email": "rebecca@gmail.com",
+      "password": "$2b$10$c.OB3q4VA1ga7FNODHqn8.IVvwyeRHvC2EgI4R.9HoNPL7Wd8zbqW",
+      "role": "job_seeker",
+      "status": "active",
+      "created_at": "2026-07-09T11:28:01.445Z",
+      "updated_at": "2026-07-09T11:28:01.445Z"
+    }
+  ]
+}

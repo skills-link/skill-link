@@ -1,4 +1,58 @@
-const pool = require('../config/db');
+const db = require('../config/db');
+const path = require('path');
+const fs = require('fs');
+
+const jobsStorePath = path.join(__dirname, '..', 'data', 'jobs-store.json');
+
+const ensureJobsStore = () => {
+  const dir = path.dirname(jobsStorePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(jobsStorePath)) fs.writeFileSync(jobsStorePath, JSON.stringify({ jobs: [] }, null, 2));
+};
+
+const readJobsStore = () => {
+  ensureJobsStore();
+  return JSON.parse(fs.readFileSync(jobsStorePath, 'utf8'));
+};
+
+const writeJobsStore = (store) => {
+  ensureJobsStore();
+  fs.writeFileSync(jobsStorePath, JSON.stringify(store, null, 2));
+};
+
+const listJobsFromStore = () => {
+  const store = readJobsStore();
+  return store.jobs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+};
+
+const getJobFromStore = (id) => {
+  const store = readJobsStore();
+  return store.jobs.find((job) => String(job.id) === String(id)) || null;
+};
+
+const createJobInStore = (job) => {
+  const store = readJobsStore();
+  store.jobs.push(job);
+  writeJobsStore(store);
+  return job;
+};
+
+const updateJobInStore = (id, payload) => {
+  const store = readJobsStore();
+  const index = store.jobs.findIndex((job) => String(job.id) === String(id));
+  if (index === -1) return null;
+  store.jobs[index] = { ...store.jobs[index], ...payload };
+  writeJobsStore(store);
+  return store.jobs[index];
+};
+
+const deleteJobInStore = (id) => {
+  const store = readJobsStore();
+  const before = store.jobs.length;
+  store.jobs = store.jobs.filter((job) => String(job.id) !== String(id));
+  writeJobsStore(store);
+  return store.jobs.length !== before;
+};
 
 // Shared SELECT fragment so job list and detail endpoints return consistent fields.
 const jobSelect = `
@@ -51,11 +105,16 @@ const listJobs = async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.query(
-      `${jobSelect} WHERE ${filters.join(' AND ')} ORDER BY jobs.created_at DESC`,
-      params
-    );
-    res.json({ jobs: rows });
+    try {
+      const [rows] = await db.query(
+        `${jobSelect} WHERE ${filters.join(' AND ')} ORDER BY jobs.created_at DESC`,
+        params
+      );
+      return res.json({ jobs: rows });
+    } catch (dbError) {
+      const jobs = listJobsFromStore().filter((job) => job.status === 'open');
+      return res.json({ jobs });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Could not load jobs', error: error.message });
   }
@@ -63,11 +122,18 @@ const listJobs = async (req, res) => {
 
 const getJob = async (req, res) => {
   try {
-    const [rows] = await pool.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [req.params.id]);
-    if (!rows.length) {
-      return res.status(404).json({ message: 'Job not found' });
+    try {
+      const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [req.params.id]);
+      if (rows.length) {
+        return res.json({ job: rows[0] });
+      }
+    } catch (dbError) {
+      const job = getJobFromStore(req.params.id);
+      if (job) {
+        return res.json({ job });
+      }
     }
-    res.json({ job: rows[0] });
+    return res.status(404).json({ message: 'Job not found' });
   } catch (error) {
     res.status(500).json({ message: 'Could not load job', error: error.message });
   }
@@ -92,9 +158,7 @@ const createJob = async (req, res) => {
   }
 
   try {
-    // employer_id comes from the JWT user, not from the request body.
-    // That prevents one employer from posting as another employer.
-    const [result] = await pool.query(
+    const [result] = await db.query(
       `INSERT INTO jobs
         (employer_id, title, description, requirements, responsibilities, location, job_type, salary_range, deadline, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
@@ -110,21 +174,44 @@ const createJob = async (req, res) => {
         deadline
       ]
     );
-    const [rows] = await pool.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [result.insertId]);
-    res.status(201).json({ message: 'Job posted', job: rows[0] });
+    const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [result.insertId]);
+    return res.status(201).json({ message: 'Job posted', job: rows[0] });
   } catch (error) {
-    res.status(500).json({ message: 'Could not create job', error: error.message });
+    const fallbackJob = createJobInStore({
+      id: Date.now(),
+      employer_id: req.user.id,
+      employer_name: req.user.name,
+      company_name: req.user.name,
+      industry: null,
+      website: null,
+      title,
+      description,
+      requirements: requirements || '',
+      responsibilities: responsibilities || '',
+      location,
+      job_type,
+      salary_range: salary_range || '',
+      deadline,
+      status: 'open',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    return res.status(201).json({ message: 'Job posted', job: fallbackJob });
   }
 };
 
 const employerJobs = async (req, res) => {
   try {
     // Employers can list only jobs where they are the owner.
-    const [rows] = await pool.query(
-      `${jobSelect} WHERE jobs.employer_id = ? ORDER BY jobs.created_at DESC`,
-      [req.user.id]
-    );
-    res.json({ jobs: rows });
+    try {
+      const [rows] = await db.query(
+        `${jobSelect} WHERE jobs.employer_id = ? ORDER BY jobs.created_at DESC`,
+        [req.user.id]
+      );
+      return res.json({ jobs: rows });
+    } catch (dbError) {
+      return res.json({ jobs: listJobsFromStore().filter((job) => String(job.employer_id) === String(req.user.id)) });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Could not load employer jobs', error: error.message });
   }
@@ -158,7 +245,7 @@ const updateJob = async (req, res) => {
   }
 
   try {
-    const [jobs] = await pool.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [id]);
+    const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [id]).catch(() => [ [] ]);
     if (!jobs.length) {
       return res.status(404).json({ message: 'Job not found' });
     }
@@ -174,8 +261,13 @@ const updateJob = async (req, res) => {
       id
     ]);
 
-    const [rows] = await pool.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [id]);
-    res.json({ message: 'Job updated', job: rows[0] });
+    try {
+      const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [id]);
+      return res.json({ message: 'Job updated', job: rows[0] });
+    } catch (dbError) {
+      const updated = updateJobInStore(id, payload);
+      return res.json({ message: 'Job updated', job: updated });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Could not update job', error: error.message });
   }
@@ -183,7 +275,7 @@ const updateJob = async (req, res) => {
 
 const deleteJob = async (req, res) => {
   try {
-    const [jobs] = await pool.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [req.params.id]);
+    const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [req.params.id]).catch(() => [ [] ]);
     if (!jobs.length) {
       return res.status(404).json({ message: 'Job not found' });
     }
@@ -192,8 +284,12 @@ const deleteJob = async (req, res) => {
       return res.status(403).json({ message: 'You can only delete your own jobs' });
     }
 
-    await pool.query('DELETE FROM jobs WHERE id = ?', [req.params.id]);
-    res.json({ message: 'Job deleted' });
+    try {
+      await db.query('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+    } catch (dbError) {
+      deleteJobInStore(req.params.id);
+    }
+    return res.json({ message: 'Job deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Could not delete job', error: error.message });
   }

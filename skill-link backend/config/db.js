@@ -1,19 +1,47 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// A connection pool keeps several database connections ready for reuse.
-// That is more efficient than opening and closing a new connection for every API request.
-const pool = mysql.createPool({
-  // Values come from .env so the code works on different machines without editing source files.
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'jobconnect',
-  port: Number(process.env.DB_PORT || 3306),
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+let pool = null;
 
-// Controllers import this pool whenever they need to query MariaDB/MySQL.
-module.exports = pool;
+const createPool = async () => {
+  if (pool) return pool;
+
+  try {
+    pool = mysql.createPool({
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'jobconnect',
+      port: Number(process.env.DB_PORT || 3306),
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
+
+    const connection = await pool.getConnection();
+    await connection.ping();
+    connection.release();
+    return pool;
+  } catch (error) {
+    console.warn('Database unavailable, using local auth fallback:', error.message);
+    return null;
+  }
+};
+
+const query = async (...args) => {
+  const activePool = await createPool();
+  if (!activePool) {
+    throw new Error('Database unavailable');
+  }
+  return activePool.query(...args);
+};
+
+const getConnection = async () => {
+  const activePool = await createPool();
+  if (!activePool) {
+    throw new Error('Database unavailable');
+  }
+  return activePool.getConnection();
+};
+
+module.exports = { query, getConnection, createPool };

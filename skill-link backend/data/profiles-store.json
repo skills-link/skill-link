@@ -1,0 +1,24 @@
+{
+  "profiles": [
+    {
+      "user_id": 1783594320011,
+      "role": "employer",
+      "company_name": "Bonecrashers Limited",
+      "company_description": "Bonecrashers Limited is a dynamic multiservice provider in Uganda dedicated to bridging the gap between top-tier technical talent and client needs. We operate across multiple sectors, providing professional solutions in web design, digital marketing, graphic branding, carpentry, electrical installations, and catering services. Our goal is to consistently deliver high-quality, reliable, and innovative services tailored to both corporate and residential clients across the country.",
+      "industry": "Multiservice Agency & Technical Services",
+      "location": "Kampala, Uganda",
+      "phone": "+256790197501",
+      "website": null
+    },
+    {
+      "user_id": 1783596481445,
+      "role": "job_seeker",
+      "phone": "+256790197501",
+      "location": "Kampala Uganda",
+      "skills": "UI/UX Design, Wireframing, and Prototyping (Figma, Adobe XD)\r\n\r\nResponsive Web Design & Mobile Optimization\r\n\r\nContent Management Systems (WordPress, Webflow, Shopify)\r\n\r\nFrontend Basics (HTML5, CSS3, basic JavaScript)\r\n\r\nSearch Engine Optimization (SEO) & Website Speed Optimization",
+      "education": "Bachelor of Science in Information Technology – Makerere University (Graduated 2023)\r\n\r\nCertified Professional Web Designer – Online Course/Bootcamp (2024)",
+      "experience_level": "Intermediate (3+ Years)",
+      "cv_file": "1783596951395-387564536.pdf"
+    }
+  ]
+}

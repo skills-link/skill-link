@@ -1,4 +1,42 @@
-const pool = require('../config/db');
+const db = require('../config/db');
+const path = require('path');
+const fs = require('fs');
+
+const profilesStorePath = path.join(__dirname, '..', 'data', 'profiles-store.json');
+
+const ensureProfilesStore = () => {
+  const dir = path.dirname(profilesStorePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(profilesStorePath)) fs.writeFileSync(profilesStorePath, JSON.stringify({ profiles: [] }, null, 2));
+};
+
+const readProfilesStore = () => {
+  ensureProfilesStore();
+  return JSON.parse(fs.readFileSync(profilesStorePath, 'utf8'));
+};
+
+const writeProfilesStore = (store) => {
+  ensureProfilesStore();
+  fs.writeFileSync(profilesStorePath, JSON.stringify(store, null, 2));
+};
+
+const getProfileFromStore = (userId) => {
+  const store = readProfilesStore();
+  return store.profiles.find((profile) => String(profile.user_id) === String(userId)) || null;
+};
+
+const upsertProfileInStore = (userId, profile) => {
+  const store = readProfilesStore();
+  const existing = store.profiles.findIndex((item) => String(item.user_id) === String(userId));
+  const nextProfile = { user_id: userId, ...profile };
+  if (existing >= 0) {
+    store.profiles[existing] = nextProfile;
+  } else {
+    store.profiles.push(nextProfile);
+  }
+  writeProfilesStore(store);
+  return nextProfile;
+};
 
 // Phone validation regex: +256 followed by 9 digits
 const phoneRegex = /^\+256[0-9]{9}$/;
@@ -7,17 +45,21 @@ const getProfile = async (req, res) => {
   try {
     // The same endpoint returns the correct profile table for the logged-in role.
     if (req.user.role === 'employer') {
-      const [rows] = await pool.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [
-        req.user.id
-      ]);
-      return res.json({ profile: rows[0] || null });
+      try {
+        const [rows] = await db.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+        return res.json({ profile: rows[0] || null });
+      } catch (dbError) {
+        return res.json({ profile: getProfileFromStore(req.user.id) });
+      }
     }
 
     if (req.user.role === 'job_seeker') {
-      const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [
-        req.user.id
-      ]);
-      return res.json({ profile: rows[0] || null });
+      try {
+        const [rows] = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+        return res.json({ profile: rows[0] || null });
+      } catch (dbError) {
+        return res.json({ profile: getProfileFromStore(req.user.id) });
+      }
     }
 
     res.json({ profile: null });
@@ -41,32 +83,43 @@ const upsertEmployerProfile = async (req, res) => {
   try {
     // ON DUPLICATE KEY UPDATE works because employer_profiles.user_id is UNIQUE.
     // It lets one endpoint handle both "create profile" and "update profile".
-    await pool.query(
-      `INSERT INTO employer_profiles
-        (user_id, company_name, company_description, industry, location, phone, website)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-        company_name = VALUES(company_name),
-        company_description = VALUES(company_description),
-        industry = VALUES(industry),
-        location = VALUES(location),
-        phone = VALUES(phone),
-        website = VALUES(website)`,
-      [
-        req.user.id,
-        company_name,
-        company_description || null,
-        industry || null,
-        location || null,
-        phone || null,
-        website || null
-      ]
-    );
+    try {
+      await db.query(
+        `INSERT INTO employer_profiles
+          (user_id, company_name, company_description, industry, location, phone, website)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          company_name = VALUES(company_name),
+          company_description = VALUES(company_description),
+          industry = VALUES(industry),
+          location = VALUES(location),
+          phone = VALUES(phone),
+          website = VALUES(website)`,
+        [
+          req.user.id,
+          company_name,
+          company_description || null,
+          industry || null,
+          location || null,
+          phone || null,
+          website || null
+        ]
+      );
 
-    const [rows] = await pool.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [
-      req.user.id
-    ]);
-    res.json({ message: 'Employer profile saved', profile: rows[0] });
+      const [rows] = await db.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+      return res.json({ message: 'Employer profile saved', profile: rows[0] });
+    } catch (dbError) {
+      const profile = upsertProfileInStore(req.user.id, {
+        role: 'employer',
+        company_name,
+        company_description: company_description || null,
+        industry: industry || null,
+        location: location || null,
+        phone: phone || null,
+        website: website || null
+      });
+      return res.json({ message: 'Employer profile saved', profile });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Could not save employer profile', error: error.message });
@@ -83,37 +136,47 @@ const upsertJobSeekerProfile = async (req, res) => {
   }
 
   try {
-    // If the user does not upload a new CV, keep the previous filename.
-    const [existing] = await pool.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [
-      req.user.id
-    ]);
-    const nextCvFile = cvFile || (existing[0] && existing[0].cv_file) || null;
+    try {
+      const [existing] = await db.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+      const nextCvFile = cvFile || (existing[0] && existing[0].cv_file) || null;
 
-    // Same upsert pattern as employer profiles, but with CV support.
-    await pool.query(
-      `INSERT INTO job_seeker_profiles
-        (user_id, phone, location, skills, education, experience_level, cv_file)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-        phone = VALUES(phone),
-        location = VALUES(location),
-        skills = VALUES(skills),
-        education = VALUES(education),
-        experience_level = VALUES(experience_level),
-        cv_file = VALUES(cv_file)`,
-      [
-        req.user.id,
-        phone || null,
-        location || null,
-        skills || null,
-        education || null,
-        experience_level || null,
-        nextCvFile
-      ]
-    );
+      await db.query(
+        `INSERT INTO job_seeker_profiles
+          (user_id, phone, location, skills, education, experience_level, cv_file)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+          phone = VALUES(phone),
+          location = VALUES(location),
+          skills = VALUES(skills),
+          education = VALUES(education),
+          experience_level = VALUES(experience_level),
+          cv_file = VALUES(cv_file)`,
+        [
+          req.user.id,
+          phone || null,
+          location || null,
+          skills || null,
+          education || null,
+          experience_level || null,
+          nextCvFile
+        ]
+      );
 
-    const [rows] = await pool.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-    res.json({ message: 'Job seeker profile saved', profile: rows[0] });
+      const [rows] = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
+      return res.json({ message: 'Job seeker profile saved', profile: rows[0] });
+    } catch (dbError) {
+      const nextCvFile = cvFile || getProfileFromStore(req.user.id)?.cv_file || null;
+      const profile = upsertProfileInStore(req.user.id, {
+        role: 'job_seeker',
+        phone: phone || null,
+        location: location || null,
+        skills: skills || null,
+        education: education || null,
+        experience_level: experience_level || null,
+        cv_file: nextCvFile
+      });
+      return res.json({ message: 'Job seeker profile saved', profile });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Could not save job seeker profile', error: error.message });
