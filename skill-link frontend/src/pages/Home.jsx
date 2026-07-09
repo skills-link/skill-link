@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import JobCard from '../components/JobCard';
 import Loading from '../components/Loading';
+import heroImage from '../assets/skill-link-logo.jpeg';
 
 const Home = () => {
   const [jobs, setJobs] = useState([]);
@@ -38,20 +39,9 @@ const Home = () => {
                 </Link>
               </div>
             </div>
-            <div className="col-lg-5">
-              <div className="hero-panel">
-                <div className="metric-row">
-                  <span>Open roles</span>
-                  <strong>{jobs.length}+</strong>
-                </div>
-                <div className="metric-row">
-                  <span>Role-based dashboards</span>
-                  <strong>3</strong>
-                </div>
-                <div className="metric-row">
-                  <span>Application tracking</span>
-                  <strong>Live</strong>
-                </div>
+            <div className="col-lg-5 hero-image-column">
+              <div className="hero-image-wrapper">
+                <img src={heroImage} alt="Skill Link Hero" className="hero-image" />
               </div>
             </div>
           </div>
