@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dashboardFor } from '../utils/roleRoutes';
 import AlertMessage from '../components/AlertMessage';
+import logo from '../assets/skill-link-logo.jpeg';
+import loginBackground from '../../images/Gemini_Generated_Image_wzqs1ywzqs1ywzqs.png';
 
 const Login = () => {
   const { login } = useAuth();
@@ -30,9 +32,17 @@ const Login = () => {
   };
 
   return (
-    <main className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1 className="h3 mb-3">Login</h1>
+    <main
+      className="auth-page"
+      style={{
+        backgroundImage: `linear-gradient(135deg, rgba(227, 247, 240, 0.35) 0%, rgba(212, 240, 247, 0.35) 100%), url(${loginBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="auth-card">
+        <img src={logo} alt="Skill Link Uganda" className="login-logo" />
+        <h1 className="h3 mb-3 text-center">Login</h1>
         <AlertMessage message={error} />
         <label className="form-label">Email</label>
         <input
@@ -50,13 +60,13 @@ const Login = () => {
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
-        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+        <button type="submit" className="btn btn-primary w-100" disabled={loading} onClick={handleSubmit}>
           {loading ? 'Signing in...' : 'Login'}
         </button>
-        <p className="text-secondary small mt-3 mb-0">
+        <p className="text-secondary small mt-3 mb-0 text-center">
           No account? <Link to="/register">Register</Link>
         </p>
-      </form>
+      </div>
     </main>
   );
 };

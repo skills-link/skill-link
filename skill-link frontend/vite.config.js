@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     // Keep the frontend port predictable for the backend CORS setting.
-    port: 5173
+    port: 5173,
+    strictPort: true
   }
 });

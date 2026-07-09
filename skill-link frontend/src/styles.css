@@ -6,10 +6,13 @@
   --jc-border: #000000;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 body {
   /* Bootstrap handles most component styling; these rules set the product look. */
   background: var(--jc-surface);
   color: var(--jc-ink);
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 a {
@@ -45,9 +48,16 @@ a {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 58%;
+  width: 50%;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.88) 20%, rgba(255,255,255,0.0) 100%);
+  /* Blend the image into the page surface using a teal/sky tint across half the hero. */
+  background: linear-gradient(90deg,
+    rgba(180,238,247,0.98) 0%,
+    rgba(180,238,247,0.92) 20%,
+    rgba(180,238,247,0.6) 40%,
+    rgba(180,238,247,0.28) 55%,
+    rgba(180,238,247,0.0) 100%
+  );
   z-index: 1;
 }
 
@@ -75,109 +85,195 @@ a {
 }
 
 /* Login card overlay */
-.login-card {
-  position: absolute;
-  right: 1.5rem;
-  top: 8%;
-  width: min(420px, 92%);
-  background: linear-gradient(180deg, rgba(255,255,255,0.90), rgba(245,255,250,0.82));
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 12px 36px rgba(10, 20, 30, 0.18);
-  backdrop-filter: blur(6px) saturate(120%);
-  z-index: 4;
-}
-
-.login-card .logo-s {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--jc-primary), #16a3a3);
-  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-}
-
-.login-card .brand-logo {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.login-card .brand-name {
-  font-weight: 700;
-}
-
-.login-card .brand-sub {
-  font-size: 12px;
-  color: rgba(0,0,0,0.6);
-}
-
-.login-card .form-control {
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.08);
-  padding: 0.625rem 0.75rem;
-}
-
-.login-card .btn-primary {
-  background: var(--jc-primary);
-  border-color: var(--jc-primary);
-}
-
 @media (max-width: 991px) {
-  .login-card {
-    position: static;
-    margin-top: 1rem;
-    width: 100%;
-    box-shadow: none;
-    backdrop-filter: none;
-  }
   .hero-image-wrapper {
     min-height: 360px;
   }
 }
 
-.hero-image-wrapper::before {
-  /* Left-side fade keeps hero text readable while revealing the image on the right. */
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 55%;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.82) 25%, rgba(255,255,255,0.0) 100%);
-  z-index: 2;
-}
-
+.hero-image-wrapper::before,
 .hero-image-wrapper::after {
-  /* Soft vertical blend from top to bottom. */
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.08) 40%, rgba(255,255,255,0.9));
-  z-index: 1;
+  /* Remove additional white overlays so the background image remains clear.
+     The primary left blend is handled by .hero-section::before. */
+  content: none;
 }
 
 .auth-page {
-  /* Centers login/register forms vertically and horizontally. */
-  min-height: calc(100vh - 57px);
-  display: grid;
-  place-items: center;
-  padding: 2rem 1rem;
+  /* Centers login/register forms vertically and horizontally on a dedicated auth screen. */
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  margin: 0;
 }
 
+.register-page {
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.register-card,
 .auth-card {
-  width: min(100%, 440px);
+  width: min(100%, 420px);
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 2px solid #0F5132;
+  border-radius: 20px;
+  box-shadow: none;
+  padding: 30px 25px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.register-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-logo,
+.login-logo {
+  max-width: 260px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 15px auto;
+  background: transparent;
+}
+
+.register-input,
+.register-card .form-control {
   background: #ffffff;
-  border: 1px solid var(--jc-border);
-  border-radius: 8px;
-  padding: 1.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 0.95rem 1rem;
+  font-family: 'Poppins', sans-serif;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.register-input:focus,
+.register-card .form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.register-card .form-label,
+.register-card label,
+.auth-card .form-label,
+.auth-card label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #111111;
+  font-size: 0.95rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #111111;
+  font-size: 0;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  color: #111111;
+}
+
+.account-toggle {
+  display: flex;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 5px;
+  border-radius: 30px;
+}
+
+.pill-button {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 26px;
+  border: 1px solid transparent;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.pill-button + .pill-button {
+  margin-left: 6px;
+}
+
+.pill-button.active {
+  background: #1DB954;
+  color: #ffffff;
+  border-color: #1DB954;
+}
+
+.register-submit {
+  background: #1DB954;
+  border-color: #1DB954;
+  border-radius: 12px;
+  padding: 0.95rem 1.25rem;
+  font-weight: 700;
+  width: 100%;
+  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.4);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.register-submit:hover:not(:disabled) {
+  background: #1ed760;
+  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
+}
+
+.register-submit:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.register-footer-text {
+  text-align: center;
+  margin-bottom: 0;
+  color: #6b7280;
+}
+
+.register-login-link {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+@media (max-width: 576px) {
+  .register-card {
+    padding: 1.5rem;
+  }
+
+  .account-toggle {
+    flex-direction: column;
+  }
 }
 
 .filter-bar {

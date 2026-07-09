@@ -87,6 +87,35 @@ app.use((error, req, res, next) => {
 });
 
 // Start the HTTP server after all middleware and routes have been registered.
-app.listen(PORT, () => {
-  console.log(`JobConnect API running on port ${PORT}`);
-});
+// If the desired port is in use, retry on the next port up to a small limit
+// rather than letting the process crash — this keeps `nodemon` running.
+const MAX_PORT_RETRIES = 5;
+
+function startServer(port, retriesLeft = MAX_PORT_RETRIES) {
+  const server = app.listen(port, () => {
+    console.log(`JobConnect API running on port ${port}`);
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use.`);
+      if (retriesLeft > 0) {
+        const nextPort = Number(port) + 1;
+        console.log(`Attempting to listen on port ${nextPort} (${retriesLeft - 1} retries left)...`);
+        // Give a short delay to avoid busy-looping when many restarts happen.
+        setTimeout(() => startServer(nextPort, retriesLeft - 1), 300);
+      } else {
+        console.error('No available ports found. Exiting.');
+        // Exit with a non-zero code so the caller knows startup failed.
+        process.exit(1);
+      }
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+
+  return server;
+}
+
+startServer(PORT);

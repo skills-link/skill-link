@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import AppNavbar from './components/AppNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -24,10 +24,15 @@ import NotFound from './pages/NotFound';
 
 // App declares every route in the frontend.
 // Public routes are listed first; protected route groups are wrapped by role checks.
-const App = () => (
-  <>
-    <AppNavbar />
-    <Routes>
+const App = () => {
+  const location = useLocation();
+  const hideNavbar = ['/login', '/register'].includes(location.pathname);
+
+  return (
+    <>
+      {!hideNavbar && <AppNavbar />}
+
+      <Routes>
       {/* Public pages available to visitors and logged-in users. */}
       <Route path="/" element={<Home />} />
       <Route path="/jobs" element={<BrowseJobs />} />
@@ -72,5 +77,7 @@ const App = () => (
     </Routes>
   </>
 );
+
+}
 
 export default App;
