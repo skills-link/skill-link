@@ -1,4 +1,4 @@
-USE jobconnect;
+USE skillslink_db;
 
 -- All seeded users use the bcrypt hash for password123.
 -- In a real system, each user chooses their own password during registration.

@@ -1,6 +1,6 @@
 -- Create the project database if it does not already exist.
-CREATE DATABASE IF NOT EXISTS jobconnect;
-USE jobconnect;
+CREATE DATABASE IF NOT EXISTS skillslink_db;
+USE skillslink_db;
 
 -- Drop child tables first because they contain foreign keys to parent tables.
 DROP TABLE IF EXISTS applications;
