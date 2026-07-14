@@ -93,7 +93,7 @@ const MAX_PORT_RETRIES = 5;
 
 function startServer(port, retriesLeft = MAX_PORT_RETRIES) {
   const server = app.listen(port, () => {
-    console.log(`JobConnect API running on port ${port}`);
+    console.log(`Skill-Link API running on port ${port}`);
   });
 
   server.on('error', (err) => {
