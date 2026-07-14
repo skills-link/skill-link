@@ -1,5 +1,5 @@
 {
-  "name": "jobconnect-backend",
+  "name": "skill-link-backend",
   "version": "1.0.0",
   "description": "Express and MariaDB API for JobConnect",
   "main": "server.js",
