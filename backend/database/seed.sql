@@ -17,6 +17,7 @@ INSERT INTO employer_profiles (user_id, company_name, company_description, indus
 (2, 'BluePeak Software', 'A product engineering company building web platforms for growing businesses.', 'Technology', 'Kampala, Uganda', '+256700111222', 'https://bluepeak.example.com'),
 (3, 'GreenHarvest Logistics', 'A regional logistics and supply chain company serving food and retail partners.', 'Logistics', 'Entebbe, Uganda', '+256700333444', 'https://greenharvest.example.com');
 
+
 -- Five sample job seekers. The CV filenames are examples that match the upload filename pattern.
 INSERT INTO job_seeker_profiles (user_id, phone, location, skills, education, experience_level, cv_file) VALUES
 (4, '+256701000001', 'Kampala, Uganda', 'React, JavaScript, Bootstrap, REST APIs', 'BSc Computer Science', 'Mid level', 'sample-sarah-cv.pdf'),

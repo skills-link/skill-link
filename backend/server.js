@@ -118,4 +118,8 @@ function startServer(port, retriesLeft = MAX_PORT_RETRIES) {
   return server;
 }
 
-startServer(PORT);
+if (process.env.NODE_ENV !== 'production') {
+  startServer(PORT);
+}
+
+module.exports = app;

@@ -53,9 +53,8 @@ CREATE TABLE job_seeker_profiles (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_job_seeker_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT check_phone_format CHECK (phone IS NULL OR phone REGEXP '^\+256[0-9]{9}$')
+  CONSTRAINT check_job_seeker_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$')
 );
-
 -- jobs are owned by employer users. Deleting an employer deletes their jobs through ON DELETE CASCADE.
 CREATE TABLE jobs (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -93,3 +92,10 @@ CREATE TABLE applications (
 -- Indexes help common search/filter operations run faster as the database grows.
 CREATE INDEX idx_jobs_search ON jobs (title, location, job_type, status);
 CREATE INDEX idx_applications_status ON applications (status);
+-- Fix the Employer Profiles table
+ALTER TABLE employer_profiles DROP CHECK check_phone_format;
+ALTER TABLE employer_profiles ADD CONSTRAINT check_employer_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$');
+
+-- Fix the Job Seeker Profiles table (just in case)
+ALTER TABLE job_seeker_profiles DROP CHECK check_job_seeker_phone_format;
+ALTER TABLE job_seeker_profiles ADD CONSTRAINT check_seeker_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$');
