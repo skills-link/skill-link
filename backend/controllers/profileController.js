@@ -46,8 +46,8 @@ const getProfile = async (req, res) => {
     // The same endpoint returns the correct profile table for the logged-in role.
     if (req.user.role === 'employer') {
       try {
-        const [rows] = await db.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-        return res.json({ profile: rows[0] || null });
+        const result = await db.query('SELECT * FROM employer_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+        return res.json({ profile: result.rows[0] || null });
       } catch (dbError) {
         return res.json({ profile: getProfileFromStore(req.user.id) });
       }
@@ -55,8 +55,8 @@ const getProfile = async (req, res) => {
 
     if (req.user.role === 'job_seeker') {
       try {
-        const [rows] = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-        return res.json({ profile: rows[0] || null });
+        const result = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+        return res.json({ profile: result.rows[0] || null });
       } catch (dbError) {
         return res.json({ profile: getProfileFromStore(req.user.id) });
       }
@@ -81,20 +81,21 @@ const upsertEmployerProfile = async (req, res) => {
   }
 
   try {
-    // ON DUPLICATE KEY UPDATE works because employer_profiles.user_id is UNIQUE.
-    // It lets one endpoint handle both "create profile" and "update profile".
+    // ON CONFLICT works because employer_profiles.user_id is UNIQUE.
+    // It lets one endpoint handle both "create profile" and "update profile"
+    // (the Postgres equivalent of MySQL's ON DUPLICATE KEY UPDATE).
     try {
       await db.query(
         `INSERT INTO employer_profiles
           (user_id, company_name, company_description, industry, location, phone, website)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-          company_name = VALUES(company_name),
-          company_description = VALUES(company_description),
-          industry = VALUES(industry),
-          location = VALUES(location),
-          phone = VALUES(phone),
-          website = VALUES(website)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (user_id) DO UPDATE SET
+          company_name = EXCLUDED.company_name,
+          company_description = EXCLUDED.company_description,
+          industry = EXCLUDED.industry,
+          location = EXCLUDED.location,
+          phone = EXCLUDED.phone,
+          website = EXCLUDED.website`,
         [
           req.user.id,
           company_name,
@@ -106,8 +107,8 @@ const upsertEmployerProfile = async (req, res) => {
         ]
       );
 
-      const [rows] = await db.query('SELECT * FROM employer_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-      return res.json({ message: 'Employer profile saved', profile: rows[0] });
+      const result = await db.query('SELECT * FROM employer_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+      return res.json({ message: 'Employer profile saved', profile: result.rows[0] });
     } catch (dbError) {
       const profile = upsertProfileInStore(req.user.id, {
         role: 'employer',
@@ -137,20 +138,20 @@ const upsertJobSeekerProfile = async (req, res) => {
 
   try {
     try {
-      const [existing] = await db.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-      const nextCvFile = cvFile || (existing[0] && existing[0].cv_file) || null;
+      const existing = await db.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+      const nextCvFile = cvFile || (existing.rows[0] && existing.rows[0].cv_file) || null;
 
       await db.query(
         `INSERT INTO job_seeker_profiles
           (user_id, phone, location, skills, education, experience_level, cv_file)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-          phone = VALUES(phone),
-          location = VALUES(location),
-          skills = VALUES(skills),
-          education = VALUES(education),
-          experience_level = VALUES(experience_level),
-          cv_file = VALUES(cv_file)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (user_id) DO UPDATE SET
+          phone = EXCLUDED.phone,
+          location = EXCLUDED.location,
+          skills = EXCLUDED.skills,
+          education = EXCLUDED.education,
+          experience_level = EXCLUDED.experience_level,
+          cv_file = EXCLUDED.cv_file`,
         [
           req.user.id,
           phone || null,
@@ -162,8 +163,8 @@ const upsertJobSeekerProfile = async (req, res) => {
         ]
       );
 
-      const [rows] = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-      return res.json({ message: 'Job seeker profile saved', profile: rows[0] });
+      const result = await db.query('SELECT * FROM job_seeker_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+      return res.json({ message: 'Job seeker profile saved', profile: result.rows[0] });
     } catch (dbError) {
       const nextCvFile = cvFile || getProfileFromStore(req.user.id)?.cv_file || null;
       const profile = upsertProfileInStore(req.user.id, {

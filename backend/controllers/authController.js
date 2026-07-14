@@ -92,7 +92,7 @@ const register = async (req, res) => {
           return res.status(409).json({
             message: "Email is already registered",
           });
-        });
+        }
 
         // Create the user.
         const result = await client.query(
@@ -112,7 +112,7 @@ const register = async (req, res) => {
         );
 
         const userId = result.rows[0].id;
-                // Create the corresponding profile based on the user's role.
+        // Create the corresponding profile based on the user's role.
         if (role === "employer") {
           await client.query(
             `
@@ -245,7 +245,7 @@ const login = async (req, res) => {
       );
 
       const user = result.rows[0];
-            if (!user) {
+      if (!user) {
         return res.status(401).json({
           message: "Invalid email or password",
         });

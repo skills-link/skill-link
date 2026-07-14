@@ -68,10 +68,16 @@ const listJobs = async (req, res) => {
   const filters = [];
   const params = [];
 
+  // Small helper to keep $1, $2, ... indices in sync with the params array
+  // as filters are added conditionally.
+  const addParam = (value) => {
+    params.push(value);
+    return params.length;
+  };
+
   if (req.user && req.user.role === 'admin' && status) {
     // Admins can filter by status when using this controller through authenticated clients.
-    filters.push('jobs.status = ?');
-    params.push(status);
+    filters.push(`jobs.status = $${addParam(status)}`);
   } else {
     // Public browsing should show only open jobs.
     filters.push("jobs.status = 'open'");
@@ -79,38 +85,37 @@ const listJobs = async (req, res) => {
 
   if (search) {
     // A broad keyword search checks common fields job seekers expect.
+    // Postgres LIKE is case-sensitive (unlike MySQL's default collation), so
+    // ILIKE is used to preserve the original case-insensitive behavior.
+    // The same placeholder can be referenced multiple times in Postgres, so
+    // only one param is needed even though it's used six times.
+    const idx = addParam(`%${search}%`);
     filters.push(`(
-      jobs.title LIKE ? OR employer_profiles.company_name LIKE ? OR jobs.location LIKE ?
-      OR jobs.job_type LIKE ? OR jobs.description LIKE ? OR jobs.requirements LIKE ?
+      jobs.title ILIKE $${idx} OR employer_profiles.company_name ILIKE $${idx} OR jobs.location ILIKE $${idx}
+      OR jobs.job_type ILIKE $${idx} OR jobs.description ILIKE $${idx} OR jobs.requirements ILIKE $${idx}
     )`);
-    const q = `%${search}%`;
-    params.push(q, q, q, q, q, q);
   }
 
   if (title) {
-    filters.push('jobs.title LIKE ?');
-    params.push(`%${title}%`);
+    filters.push(`jobs.title ILIKE $${addParam(`%${title}%`)}`);
   }
   if (company) {
-    filters.push('employer_profiles.company_name LIKE ?');
-    params.push(`%${company}%`);
+    filters.push(`employer_profiles.company_name ILIKE $${addParam(`%${company}%`)}`);
   }
   if (location) {
-    filters.push('jobs.location LIKE ?');
-    params.push(`%${location}%`);
+    filters.push(`jobs.location ILIKE $${addParam(`%${location}%`)}`);
   }
   if (job_type) {
-    filters.push('jobs.job_type = ?');
-    params.push(job_type);
+    filters.push(`jobs.job_type = $${addParam(job_type)}`);
   }
 
   try {
     try {
-      const [rows] = await db.query(
+      const result = await db.query(
         `${jobSelect} WHERE ${filters.join(' AND ')} ORDER BY jobs.created_at DESC`,
         params
       );
-      return res.json({ jobs: rows });
+      return res.json({ jobs: result.rows });
     } catch (dbError) {
       const jobs = listJobsFromStore().filter((job) => job.status === 'open');
       return res.json({ jobs });
@@ -123,9 +128,9 @@ const listJobs = async (req, res) => {
 const getJob = async (req, res) => {
   try {
     try {
-      const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [req.params.id]);
-      if (rows.length) {
-        return res.json({ job: rows[0] });
+      const result = await db.query(`${jobSelect} WHERE jobs.id = $1 LIMIT 1`, [req.params.id]);
+      if (result.rows.length) {
+        return res.json({ job: result.rows[0] });
       }
     } catch (dbError) {
       const job = getJobFromStore(req.params.id);
@@ -158,10 +163,11 @@ const createJob = async (req, res) => {
   }
 
   try {
-    const [result] = await db.query(
+    const inserted = await db.query(
       `INSERT INTO jobs
         (employer_id, title, description, requirements, responsibilities, location, job_type, salary_range, deadline, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'open')
+       RETURNING id`,
       [
         req.user.id,
         title,
@@ -174,8 +180,8 @@ const createJob = async (req, res) => {
         deadline
       ]
     );
-    const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [result.insertId]);
-    return res.status(201).json({ message: 'Job posted', job: rows[0] });
+    const result = await db.query(`${jobSelect} WHERE jobs.id = $1 LIMIT 1`, [inserted.rows[0].id]);
+    return res.status(201).json({ message: 'Job posted', job: result.rows[0] });
   } catch (error) {
     const fallbackJob = createJobInStore({
       id: Date.now(),
@@ -204,11 +210,11 @@ const employerJobs = async (req, res) => {
   try {
     // Employers can list only jobs where they are the owner.
     try {
-      const [rows] = await db.query(
-        `${jobSelect} WHERE jobs.employer_id = ? ORDER BY jobs.created_at DESC`,
+      const result = await db.query(
+        `${jobSelect} WHERE jobs.employer_id = $1 ORDER BY jobs.created_at DESC`,
         [req.user.id]
       );
-      return res.json({ jobs: rows });
+      return res.json({ jobs: result.rows });
     } catch (dbError) {
       return res.json({ jobs: listJobsFromStore().filter((job) => String(job.employer_id) === String(req.user.id)) });
     }
@@ -245,25 +251,30 @@ const updateJob = async (req, res) => {
   }
 
   try {
-    const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [id]).catch(() => [ [] ]);
-    if (!jobs.length) {
+    const existing = await db
+      .query('SELECT * FROM jobs WHERE id = $1 LIMIT 1', [id])
+      .catch(() => ({ rows: [] }));
+    if (!existing.rows.length) {
       return res.status(404).json({ message: 'Job not found' });
     }
     // Admins can moderate any job; employers can edit only their own jobs.
-    if (req.user.role !== 'admin' && jobs[0].employer_id !== req.user.id) {
+    if (req.user.role !== 'admin' && existing.rows[0].employer_id !== req.user.id) {
       return res.status(403).json({ message: 'You can only update your own jobs' });
     }
 
     // Build the SET clause from the validated allow-list above.
-    const assignments = Object.keys(payload).map((field) => `${field} = ?`);
-    await pool.query(`UPDATE jobs SET ${assignments.join(', ')} WHERE id = ?`, [
+    const assignments = Object.keys(payload).map((field, i) => `${field} = $${i + 1}`);
+    const idPlaceholder = Object.keys(payload).length + 1;
+    // Fixed: this previously called an undefined `pool` variable (a leftover
+    // from an earlier version of the code) instead of `db`.
+    await db.query(`UPDATE jobs SET ${assignments.join(', ')} WHERE id = $${idPlaceholder}`, [
       ...Object.values(payload),
       id
     ]);
 
     try {
-      const [rows] = await db.query(`${jobSelect} WHERE jobs.id = ? LIMIT 1`, [id]);
-      return res.json({ message: 'Job updated', job: rows[0] });
+      const result = await db.query(`${jobSelect} WHERE jobs.id = $1 LIMIT 1`, [id]);
+      return res.json({ message: 'Job updated', job: result.rows[0] });
     } catch (dbError) {
       const updated = updateJobInStore(id, payload);
       return res.json({ message: 'Job updated', job: updated });
@@ -275,17 +286,19 @@ const updateJob = async (req, res) => {
 
 const deleteJob = async (req, res) => {
   try {
-    const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [req.params.id]).catch(() => [ [] ]);
-    if (!jobs.length) {
+    const existing = await db
+      .query('SELECT * FROM jobs WHERE id = $1 LIMIT 1', [req.params.id])
+      .catch(() => ({ rows: [] }));
+    if (!existing.rows.length) {
       return res.status(404).json({ message: 'Job not found' });
     }
     // Ownership check mirrors updateJob.
-    if (req.user.role !== 'admin' && jobs[0].employer_id !== req.user.id) {
+    if (req.user.role !== 'admin' && existing.rows[0].employer_id !== req.user.id) {
       return res.status(403).json({ message: 'You can only delete your own jobs' });
     }
 
     try {
-      await db.query('DELETE FROM jobs WHERE id = ?', [req.params.id]);
+      await db.query('DELETE FROM jobs WHERE id = $1', [req.params.id]);
     } catch (dbError) {
       deleteJobInStore(req.params.id);
     }

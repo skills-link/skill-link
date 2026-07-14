@@ -68,32 +68,34 @@ const applyForJob = async (req, res) => {
   try {
     // Job seekers can apply only to jobs that exist and are currently open.
     try {
-      const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ? LIMIT 1', [jobId]);
-      if (!jobs.length || jobs[0].status !== 'open') {
+      const jobsResult = await db.query('SELECT * FROM jobs WHERE id = $1 LIMIT 1', [jobId]);
+      if (!jobsResult.rows.length || jobsResult.rows[0].status !== 'open') {
         return res.status(404).json({ message: 'Open job not found' });
       }
 
-      const [duplicate] = await db.query(
-        'SELECT id FROM applications WHERE job_id = ? AND job_seeker_id = ? LIMIT 1',
+      const duplicate = await db.query(
+        'SELECT id FROM applications WHERE job_id = $1 AND job_seeker_id = $2 LIMIT 1',
         [jobId, req.user.id]
       );
-      if (duplicate.length) {
+      if (duplicate.rows.length) {
         return res.status(409).json({ message: 'You have already applied for this job' });
       }
 
-      const [profiles] = await db.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = ? LIMIT 1', [req.user.id]);
-      const cvFile = req.file ? req.file.filename : profiles[0] && profiles[0].cv_file;
+      const profiles = await db.query('SELECT cv_file FROM job_seeker_profiles WHERE user_id = $1 LIMIT 1', [req.user.id]);
+      const cvFile = req.file ? req.file.filename : profiles.rows[0] && profiles.rows[0].cv_file;
       if (!cvFile) {
         return res.status(400).json({ message: 'Please upload a CV before applying' });
       }
 
-      const [result] = await db.query(
-        'INSERT INTO applications (job_id, job_seeker_id, cover_letter, cv_file, status) VALUES (?, ?, ?, ?, ?)',
+      const inserted = await db.query(
+        `INSERT INTO applications (job_id, job_seeker_id, cover_letter, cv_file, status)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id`,
         [jobId, req.user.id, cover_letter, cvFile, 'Pending']
       );
 
-      const [rows] = await db.query(`${applicationSelect} WHERE applications.id = ? LIMIT 1`, [result.insertId]);
-      return res.status(201).json({ message: 'Application submitted', application: rows[0] });
+      const rows = await db.query(`${applicationSelect} WHERE applications.id = $1 LIMIT 1`, [inserted.rows[0].id]);
+      return res.status(201).json({ message: 'Application submitted', application: rows.rows[0] });
     } catch (dbError) {
       const application = createApplicationInStore({
         id: Date.now(),
@@ -128,11 +130,11 @@ const myApplications = async (req, res) => {
   try {
     // The job_seeker_id filter enforces "my private records only."
     try {
-      const [rows] = await db.query(
-        `${applicationSelect} WHERE applications.job_seeker_id = ? ORDER BY applications.applied_at DESC`,
+      const result = await db.query(
+        `${applicationSelect} WHERE applications.job_seeker_id = $1 ORDER BY applications.applied_at DESC`,
         [req.user.id]
       );
-      return res.json({ applications: rows });
+      return res.json({ applications: result.rows });
     } catch (dbError) {
       return res.json({ applications: listApplicationsFromStore().filter((app) => String(app.job_seeker_id) === String(req.user.id)) });
     }
@@ -145,19 +147,19 @@ const jobApplications = async (req, res) => {
   try {
     // First load the job owner so we can enforce employer ownership.
     try {
-      const [jobs] = await db.query('SELECT employer_id FROM jobs WHERE id = ? LIMIT 1', [req.params.jobId]);
-      if (!jobs.length) {
+      const jobsResult = await db.query('SELECT employer_id FROM jobs WHERE id = $1 LIMIT 1', [req.params.jobId]);
+      if (!jobsResult.rows.length) {
         return res.status(404).json({ message: 'Job not found' });
       }
-      if (req.user.role !== 'admin' && jobs[0].employer_id !== req.user.id) {
+      if (req.user.role !== 'admin' && jobsResult.rows[0].employer_id !== req.user.id) {
         return res.status(403).json({ message: 'You can only view applicants for your own jobs' });
       }
 
-      const [rows] = await db.query(
-        `${applicationSelect} WHERE applications.job_id = ? ORDER BY applications.applied_at DESC`,
+      const result = await db.query(
+        `${applicationSelect} WHERE applications.job_id = $1 ORDER BY applications.applied_at DESC`,
         [req.params.jobId]
       );
-      return res.json({ applications: rows });
+      return res.json({ applications: result.rows });
     } catch (dbError) {
       return res.json({ applications: listApplicationsFromStore().filter((app) => String(app.job_id) === String(req.params.jobId)) });
     }
@@ -177,17 +179,17 @@ const updateApplicationStatus = async (req, res) => {
   try {
     // Load joined application data so we can check the employer_id of the job.
     try {
-      const [rows] = await db.query(`${applicationSelect} WHERE applications.id = ? LIMIT 1`, [req.params.id]);
-      if (!rows.length) {
+      const existing = await db.query(`${applicationSelect} WHERE applications.id = $1 LIMIT 1`, [req.params.id]);
+      if (!existing.rows.length) {
         return res.status(404).json({ message: 'Application not found' });
       }
-      if (req.user.role !== 'admin' && rows[0].employer_id !== req.user.id) {
+      if (req.user.role !== 'admin' && existing.rows[0].employer_id !== req.user.id) {
         return res.status(403).json({ message: 'You can only update applicants for your own jobs' });
       }
 
-      await db.query('UPDATE applications SET status = ? WHERE id = ?', [status, req.params.id]);
-      const [updated] = await db.query(`${applicationSelect} WHERE applications.id = ? LIMIT 1`, [req.params.id]);
-      return res.json({ message: 'Application status updated', application: updated[0] });
+      await db.query('UPDATE applications SET status = $1 WHERE id = $2', [status, req.params.id]);
+      const updated = await db.query(`${applicationSelect} WHERE applications.id = $1 LIMIT 1`, [req.params.id]);
+      return res.json({ message: 'Application status updated', application: updated.rows[0] });
     } catch (dbError) {
       const updated = updateApplicationInStore(req.params.id, { status });
       if (!updated) {

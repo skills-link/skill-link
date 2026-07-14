@@ -34,12 +34,32 @@ const updateUserStatusInStore = (id, status) => {
 const stats = async (req, res) => {
   try {
     // These separate count queries keep the dashboard simple and easy to read for students.
-    const [[users]] = await db.query('SELECT COUNT(*) AS total FROM users').catch(() => [{ total: getUsersFromStore().length }]);
-    const [[employers]] = await db.query("SELECT COUNT(*) AS total FROM users WHERE role = 'employer'").catch(() => [{ total: getUsersFromStore().filter((u) => u.role === 'employer').length }]);
-    const [[seekers]] = await db.query("SELECT COUNT(*) AS total FROM users WHERE role = 'job_seeker'").catch(() => [{ total: getUsersFromStore().filter((u) => u.role === 'job_seeker').length }]);
-    const [[jobs]] = await db.query('SELECT COUNT(*) AS total FROM jobs').catch(() => [{ total: 0 }]);
-    const [[openJobs]] = await db.query("SELECT COUNT(*) AS total FROM jobs WHERE status = 'open'").catch(() => [{ total: 0 }]);
-    const [[applications]] = await db.query('SELECT COUNT(*) AS total FROM applications').catch(() => [{ total: 0 }]);
+    // COUNT(*) comes back as a PostgreSQL bigint, so cast to int for plain JS numbers.
+    const users = await db
+      .query('SELECT COUNT(*)::int AS total FROM users')
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: getUsersFromStore().length }));
+    const employers = await db
+      .query("SELECT COUNT(*)::int AS total FROM users WHERE role = 'employer'")
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: getUsersFromStore().filter((u) => u.role === 'employer').length }));
+    const seekers = await db
+      .query("SELECT COUNT(*)::int AS total FROM users WHERE role = 'job_seeker'")
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: getUsersFromStore().filter((u) => u.role === 'job_seeker').length }));
+    const jobs = await db
+      .query('SELECT COUNT(*)::int AS total FROM jobs')
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: 0 }));
+    const openJobs = await db
+      .query("SELECT COUNT(*)::int AS total FROM jobs WHERE status = 'open'")
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: 0 }));
+    const applications = await db
+      .query('SELECT COUNT(*)::int AS total FROM applications')
+      .then((r) => r.rows[0])
+      .catch(() => ({ total: 0 }));
+
     res.json({
       stats: {
         users: users.total,
@@ -59,10 +79,10 @@ const users = async (req, res) => {
   try {
     // Admin user lists omit password hashes.
     try {
-      const [rows] = await db.query(
+      const result = await db.query(
         'SELECT id, name, email, role, status, created_at, updated_at FROM users ORDER BY created_at DESC'
       );
-      return res.json({ users: rows });
+      return res.json({ users: result.rows });
     } catch (dbError) {
       return res.json({ users: getUsersFromStore() });
     }
@@ -75,14 +95,14 @@ const jobs = async (req, res) => {
   try {
     // Admins see both open and closed jobs for moderation.
     try {
-      const [rows] = await db.query(`
+      const result = await db.query(`
         SELECT jobs.*, users.name AS employer_name, employer_profiles.company_name
         FROM jobs
         JOIN users ON users.id = jobs.employer_id
         LEFT JOIN employer_profiles ON employer_profiles.user_id = jobs.employer_id
         ORDER BY jobs.created_at DESC
       `);
-      return res.json({ jobs: rows });
+      return res.json({ jobs: result.rows });
     } catch (dbError) {
       return res.json({ jobs: [] });
     }
@@ -95,7 +115,7 @@ const applications = async (req, res) => {
   try {
     // Joined data gives admins applicant, job, and company context in one request.
     try {
-      const [rows] = await db.query(`
+      const result = await db.query(`
         SELECT applications.*, jobs.title AS job_title, employer_profiles.company_name,
                users.name AS job_seeker_name, users.email AS job_seeker_email
         FROM applications
@@ -104,7 +124,7 @@ const applications = async (req, res) => {
         JOIN users ON users.id = applications.job_seeker_id
         ORDER BY applications.applied_at DESC
       `);
-      return res.json({ applications: rows });
+      return res.json({ applications: result.rows });
     } catch (dbError) {
       return res.json({ applications: [] });
     }
@@ -125,8 +145,8 @@ const updateUserStatus = async (req, res) => {
 
   try {
     try {
-      const [result] = await db.query('UPDATE users SET status = ? WHERE id = ?', [status, req.params.id]);
-      if (!result.affectedRows) {
+      const result = await db.query('UPDATE users SET status = $1 WHERE id = $2', [status, req.params.id]);
+      if (!result.rowCount) {
         return res.status(404).json({ message: 'User not found' });
       }
       return res.json({ message: 'User status updated' });
