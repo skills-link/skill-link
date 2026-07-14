@@ -1,101 +1,282 @@
--- Create the project database if it does not already exist.
-CREATE DATABASE IF NOT EXISTS skillslink_db;
-USE skillslink_db;
+-- =====================================================
+-- Skills Link Uganda Database Schema (PostgreSQL)
+-- =====================================================
 
--- Drop child tables first because they contain foreign keys to parent tables.
-DROP TABLE IF EXISTS applications;
-DROP TABLE IF EXISTS jobs;
-DROP TABLE IF EXISTS job_seeker_profiles;
-DROP TABLE IF EXISTS employer_profiles;
-DROP TABLE IF EXISTS users;
+-- Drop tables (children first)
+DROP TABLE IF EXISTS applications CASCADE;
+DROP TABLE IF EXISTS jobs CASCADE;
+DROP TABLE IF EXISTS job_seeker_profiles CASCADE;
+DROP TABLE IF EXISTS employer_profiles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
--- users stores login credentials and the role used by the API for access control.
+-- Drop enum types if they already exist
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS user_status CASCADE;
+DROP TYPE IF EXISTS job_type_enum CASCADE;
+DROP TYPE IF EXISTS job_status CASCADE;
+DROP TYPE IF EXISTS application_status CASCADE;
+
+-- =====================================================
+-- ENUM TYPES
+-- =====================================================
+
+CREATE TYPE user_role AS ENUM (
+    'admin',
+    'employer',
+    'job_seeker'
+);
+
+CREATE TYPE user_status AS ENUM (
+    'active',
+    'inactive'
+);
+
+CREATE TYPE job_type_enum AS ENUM (
+    'Full-time',
+    'Part-time',
+    'Contract',
+    'Internship',
+    'Remote'
+);
+
+CREATE TYPE job_status AS ENUM (
+    'open',
+    'closed'
+);
+
+CREATE TYPE application_status AS ENUM (
+    'Pending',
+    'Shortlisted',
+    'Rejected',
+    'Hired'
+);
+
+-- =====================================================
+-- USERS
+-- =====================================================
+
 CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(120) NOT NULL,
-  email VARCHAR(160) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'employer', 'job_seeker') NOT NULL,
-  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT check_email_format CHECK (email REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    name VARCHAR(120) NOT NULL,
+
+    email VARCHAR(160) UNIQUE NOT NULL,
+
+    password VARCHAR(255) NOT NULL,
+
+    role user_role NOT NULL,
+
+    status user_status DEFAULT 'active',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT check_email_format
+        CHECK (
+            email ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+        )
 );
 
--- employer_profiles stores company information for users whose role is employer.
--- user_id is UNIQUE because each employer should have only one company profile.
+-- =====================================================
+-- EMPLOYER PROFILES
+-- =====================================================
+
 CREATE TABLE employer_profiles (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL UNIQUE,
-  company_name VARCHAR(160) NOT NULL,
-  company_description TEXT,
-  industry VARCHAR(120),
-  location VARCHAR(160),
-  phone VARCHAR(40),
-  website VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_employer_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT check_phone_format CHECK (phone IS NULL OR phone REGEXP '^\+256[0-9]{9}$')
+
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    user_id INTEGER UNIQUE NOT NULL,
+
+    company_name VARCHAR(160) NOT NULL,
+
+    company_description TEXT,
+
+    industry VARCHAR(120),
+
+    location VARCHAR(160),
+
+    phone VARCHAR(40),
+
+    website VARCHAR(255),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_employer_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT check_employer_phone_format
+        CHECK (
+            phone IS NULL
+            OR phone ~ '^\+256[0-9]{9}$'
+        )
 );
 
--- job_seeker_profiles stores candidate information and the default CV filename.
--- CV files are stored on disk in backend/uploads; only the filename is stored here.
+-- =====================================================
+-- JOB SEEKER PROFILES
+-- =====================================================
+
 CREATE TABLE job_seeker_profiles (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL UNIQUE,
-  phone VARCHAR(40),
-  location VARCHAR(160),
-  skills TEXT,
-  education TEXT,
-  experience_level VARCHAR(80),
-  cv_file VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_job_seeker_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT check_job_seeker_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$')
+
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    user_id INTEGER UNIQUE NOT NULL,
+
+    phone VARCHAR(40),
+
+    location VARCHAR(160),
+
+    skills TEXT,
+
+    education TEXT,
+
+    experience_level VARCHAR(80),
+
+    cv_file VARCHAR(255),
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_job_seeker_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT check_seeker_phone_format
+        CHECK (
+            phone IS NULL
+            OR phone ~ '^\+256[0-9]{9}$'
+        )
 );
--- jobs are owned by employer users. Deleting an employer deletes their jobs through ON DELETE CASCADE.
+
+-- =====================================================
+-- JOBS
+-- =====================================================
+
 CREATE TABLE jobs (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  employer_id INT NOT NULL,
-  title VARCHAR(180) NOT NULL,
-  description TEXT NOT NULL,
-  requirements TEXT,
-  responsibilities TEXT,
-  location VARCHAR(160) NOT NULL,
-  job_type ENUM('Full-time', 'Part-time', 'Contract', 'Internship', 'Remote') NOT NULL,
-  salary_range VARCHAR(100),
-  deadline DATE NOT NULL,
-  status ENUM('open', 'closed') NOT NULL DEFAULT 'open',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_jobs_employer FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE
+
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    employer_id INTEGER NOT NULL,
+
+    title VARCHAR(180) NOT NULL,
+
+    description TEXT NOT NULL,
+
+    requirements TEXT,
+
+    responsibilities TEXT,
+
+    location VARCHAR(160) NOT NULL,
+
+    job_type job_type_enum NOT NULL,
+
+    salary_range VARCHAR(100),
+
+    deadline DATE NOT NULL,
+
+    status job_status DEFAULT 'open',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_jobs_employer
+        FOREIGN KEY (employer_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
 
--- applications connect a job seeker to a job.
--- unique_job_application prevents the same job seeker from applying to the same job twice.
+-- =====================================================
+-- APPLICATIONS
+-- =====================================================
+
 CREATE TABLE applications (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  job_id INT NOT NULL,
-  job_seeker_id INT NOT NULL,
-  cover_letter TEXT NOT NULL,
-  cv_file VARCHAR(255) NOT NULL,
-  status ENUM('Pending', 'Shortlisted', 'Rejected', 'Hired') NOT NULL DEFAULT 'Pending',
-  applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_applications_job FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
-  CONSTRAINT fk_applications_seeker FOREIGN KEY (job_seeker_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT unique_job_application UNIQUE (job_id, job_seeker_id)
+
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    job_id INTEGER NOT NULL,
+
+    job_seeker_id INTEGER NOT NULL,
+
+    cover_letter TEXT NOT NULL,
+
+    cv_file VARCHAR(255) NOT NULL,
+
+    status application_status DEFAULT 'Pending',
+
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_applications_job
+        FOREIGN KEY (job_id)
+        REFERENCES jobs(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_applications_seeker
+        FOREIGN KEY (job_seeker_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT unique_job_application
+        UNIQUE(job_id, job_seeker_id)
 );
 
--- Indexes help common search/filter operations run faster as the database grows.
-CREATE INDEX idx_jobs_search ON jobs (title, location, job_type, status);
-CREATE INDEX idx_applications_status ON applications (status);
--- Fix the Employer Profiles table
-ALTER TABLE employer_profiles DROP CHECK check_phone_format;
-ALTER TABLE employer_profiles ADD CONSTRAINT check_employer_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$');
+-- =====================================================
+-- INDEXES
+-- =====================================================
 
--- Fix the Job Seeker Profiles table (just in case)
-ALTER TABLE job_seeker_profiles DROP CHECK check_job_seeker_phone_format;
-ALTER TABLE job_seeker_profiles ADD CONSTRAINT check_seeker_phone_format CHECK (phone IS NULL OR phone REGEXP '^\\+256[0-9]{9}$');
+CREATE INDEX idx_jobs_search
+ON jobs(title, location, job_type, status);
+
+CREATE INDEX idx_applications_status
+ON applications(status);
+
+-- =====================================================
+-- AUTOMATIC UPDATED_AT TRIGGERS
+-- =====================================================
+
+-- Function to automatically update the updated_at column
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Users
+CREATE TRIGGER trg_users_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Employer Profiles
+CREATE TRIGGER trg_employer_profiles_updated_at
+BEFORE UPDATE ON employer_profiles
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Job Seeker Profiles
+CREATE TRIGGER trg_job_seeker_profiles_updated_at
+BEFORE UPDATE ON job_seeker_profiles
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Jobs
+CREATE TRIGGER trg_jobs_updated_at
+BEFORE UPDATE ON jobs
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+
+-- Applications
+CREATE TRIGGER trg_applications_updated_at
+BEFORE UPDATE ON applications
+FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
