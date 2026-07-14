@@ -118,8 +118,7 @@ function startServer(port, retriesLeft = MAX_PORT_RETRIES) {
   return server;
 }
 
-if (process.env.NODE_ENV !== 'production') {
-  startServer(PORT);
-}
+// Start server in all environments (local + Render production)
+startServer(PORT);
 
 module.exports = app;
